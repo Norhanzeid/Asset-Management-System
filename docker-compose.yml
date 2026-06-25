@@ -1,0 +1,82 @@
+services:
+
+  # ── PostgreSQL database ──────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-assetuser}
+      # The :? syntax causes docker compose to abort if the variable is unset/empty.
+      # Never hard-code the password here; set it in a .env file (git-ignored).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-assetdb}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Expose locally for debugging only — remove in production.
+      - "5432:5432"
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "pg_isready -U ${POSTGRES_USER:-assetuser} -d ${POSTGRES_DB:-assetdb}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - asm_net
+
+  # ── FastAPI application ──────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      # Database — never embed credentials in the image; resolve from host env / .env
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-assetuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-assetdb}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-300}
+
+      # OpenAI — injected at runtime from host environment or .env file
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY must be set in .env}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o}
+      AGENT_MAX_ITERATIONS: ${AGENT_MAX_ITERATIONS:-10}
+      AGENT_TIMEOUT_SECONDS: ${AGENT_TIMEOUT_SECONDS:-120}
+
+      # API self-reference (agent tools call the same service)
+      ASM_API_BASE_URL: http://app:8000
+
+      # Optional: restrict Host header to prevent Host-header injection
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "curl -sf http://localhost:8000/health || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+    networks:
+      - asm_net
+
+# ── Named volumes ────────────────────────────────────────────────────────────
+volumes:
+  pgdata:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  asm_net:
+    driver: bridge
