@@ -48,7 +48,7 @@ Swagger docs: http://localhost:8080/docs
 
 Port mapping note:
 
-- Container listens on port 8000.
+- Container listens on port 8080.
 - Host port is controlled by APP_PORT in .env.
 - With APP_PORT=8080, use http://localhost:8080 from your browser/curl.
 
