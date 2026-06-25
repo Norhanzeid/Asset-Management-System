@@ -19,17 +19,19 @@ Tech stack: FastAPI, SQLAlchemy, PostgreSQL, LangChain, OpenAI.
 
 ## Project Structure
 
-.
-|- ai_layer.py
-|- database.py
-|- docker-compose.yml
-|- Dockerfile
-|- main.py
-|- models.py
-|- requirements.txt
-|- requirements-lock.txt
-|- .env.example
-`- README.md
+```text
+Asset Management System/
+|- ai_layer.py            # LangChain agent tools and analysis orchestration
+|- database.py            # SQLAlchemy engine, session, and DB helpers
+|- docker-compose.yml     # App + PostgreSQL local stack
+|- Dockerfile             # Multi-stage image build for API service
+|- main.py                # FastAPI routes: import, assets, analyze, health
+|- models.py              # ORM models and Pydantic schemas/validators
+|- requirements.txt       # Main dependency pins
+|- requirements-lock.txt  # Fully locked dependency snapshot
+|- .env.example           # Environment template
+`- README.md              # Project documentation
+```
 
 ## API Endpoints
 
@@ -42,7 +44,13 @@ Tech stack: FastAPI, SQLAlchemy, PostgreSQL, LangChain, OpenAI.
 - POST /analyze
   - Run natural-language ASM analysis using AI
 
-Swagger docs: http://localhost:8000/docs
+Swagger docs: http://localhost:8080/docs
+
+Port mapping note:
+
+- Container listens on port 8000.
+- Host port is controlled by APP_PORT in .env.
+- With APP_PORT=8080, use http://localhost:8080 from your browser/curl.
 
 ## Environment Variables
 
@@ -57,7 +65,7 @@ Common optional values (with defaults):
 - POSTGRES_PORT=5432
 - POSTGRES_USER=assetuser
 - POSTGRES_DB=assetdb
-- APP_PORT=8000
+- APP_PORT=8080
 - LLM_MODEL=gpt-4o
 - AGENT_MAX_ITERATIONS=10
 - AGENT_TIMEOUT_SECONDS=120
@@ -85,7 +93,7 @@ docker compose up --build
 4) Verify:
 
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 ```
 
 ## Quick Start (Local Python)
@@ -112,7 +120,7 @@ docker run -d --name asm-pg -e POSTGRES_USER=assetuser -e POSTGRES_PASSWORD=your
 4) Start API:
 
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8080
 ```
 
 ## Sample API Usage
@@ -120,7 +128,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ### 1) Import sample assets
 
 ```bash
-curl -X POST http://localhost:8000/import \
+curl -X POST http://localhost:8080/import \
   -H "Content-Type: application/json" \
   -H "X-Organization-ID: my-org" \
   -d '[
@@ -146,7 +154,7 @@ Example response:
 ### 2) Query assets
 
 ```bash
-curl "http://localhost:8000/assets?type=subdomain&page=1&page_size=10" \
+curl "http://localhost:8080/assets?type=subdomain&page=1&page_size=10" \
   -H "X-Organization-ID: my-org"
 ```
 
