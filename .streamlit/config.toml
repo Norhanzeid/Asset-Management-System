@@ -1,0 +1,20 @@
+[server]
+# Long-running calls (e.g. AI Chat's /analyze, which can take up to ~130s)
+# block Streamlit's script thread. If the file watcher fires a rerun (e.g.
+# from a log file changing on disk, like admin_log.txt) while a long
+# request is in flight, the in-progress session gets torn down and the app
+# appears to "close" abruptly. Disabling the watcher avoids that class of
+# spurious reruns/disconnects in production.
+fileWatcherType = "none"
+
+# Increase the websocket message size limit (MB) so larger asset payloads
+# (bulk import / browse results) don't get rejected or chunked unnecessarily.
+maxMessageSize = 200
+
+[runner]
+# Avoid re-running the whole script on every minor widget interaction when
+# it isn't necessary, reducing redundant API calls.
+fastReruns = true
+
+[browser]
+gatherUsageStats = false
